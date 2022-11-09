@@ -1,0 +1,28 @@
+FROM docker.io/library/ubuntu:22.04
+LABEL maintainer="fcduythien@gmail.com"
+ARG ENERGI_VERSION=v3.1.2
+ENV ENERGI_VERSION=${ENERGI_VERSION}
+ENV ENERGI_FILENAME=energi3-${ENERGI_VERSION}-linux-amd64
+ARG ENEGI_DOWNLOAD=https://s3-us-west-2.amazonaws.com/download.energi.software/releases/energi3/${ENERGI_VERSION}/${ENERGI_FILENAME}.tgz
+ARG ENERGI_SHA=https://s3-us-west-2.amazonaws.com/download.energi.software/releases/energi3/${ENERGI_VERSION}/SHA256SUMS
+
+WORKDIR /app
+RUN apt-get update && apt-get install -y curl tar
+RUN curl -O -J ${ENEGI_DOWNLOAD} && \
+    curl -O -J ${ENERGI_SHA}
+
+#Verify download file
+RUN sha256sum -c /app/SHA256SUMS --ignore-missing
+
+RUN tar zxvf ${ENERGI_FILENAME}.tgz -C  /app && \
+    cp /app/${ENERGI_FILENAME}/bin/energi3 /usr/local/bin && \
+    chmod +x /usr/local/bin/energi3
+
+COPY docker-entrypoint.sh  /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+RUN mkdir /data && mkdir -p /root/.energicore3 && ln -s /data /root/.energicore3/energi3
+VOLUME ["/data"]
+
+EXPOSE 39796 39795 39797 39797/udp
+ENTRYPOINT ["docker-entrypoint.sh"]
